@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Holerite JSON v2.0</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 450px; margin: auto; background-color: #f4f4f9; }
+        label { font-weight: bold; margin-top: 10px; display: block; }
+        input { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .btn-gerar { margin-top: 20px; width: 100%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-weight: bold;}
+        .btn-gerar:hover { background-color: #218838; }
+        
+        /* Estilos do campo Outros */
+        .outros-box { border: 1px dashed #aaa; padding: 10px; margin-top: 15px; background: #fff; border-radius: 4px; }
+        .outro-item { display: flex; gap: 5px; margin-top: 10px; align-items: center; }
+        .outro-item input { margin-top: 0; }
+        .btn-add { margin-top: 10px; width: 100%; padding: 8px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-add:hover { background-color: #0056b3; }
+        .btn-remove { padding: 8px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        
+        pre { background: #eee; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 14px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+
+    <h2>Gerador de JSON (Folha)</h2>
+
+    <label>Empresa:</label>
+    <input type="text" id="empresa" value="">
+
+    <label>Salário Base:</label>
+    <input type="number" id="salario_base" step="0.01">
+
+    <label>Salário Bruto Total:</label>
+    <input type="number" id="bruto" step="0.01">
+
+    <label>INSS Descontado:</label>
+    <input type="number" id="inss" step="0.01">
+
+    <label>IRRF (Imposto de Renda):</label>
+    <input type="number" id="irrf" step="0.01" value="0.00">
+
+    <div class="outros-box">
+        <label>Outros Descontos / Proventos:</label>
+        <div id="outros-container"></div>
+        <button class="btn-add" onclick="adicionarCampoOutros()">+ Adicionar Item</button>
+    </div>
+
+    <button class="btn-gerar" onclick="gerarJSON()">Gerar e Copiar JSON</button>
+
+    <pre id="resultado">O JSON aparecerá aqui...</pre>
+
+    <script>
+        function adicionarCampoOutros() {
+            const container = document.getElementById('outros-container');
+            const div = document.createElement('div');
+            div.className = 'outro-item';
+            div.innerHTML = `
+                <input type="text" placeholder="Nome (Ex: plano saude)" class="outro-nome">
+                <input type="number" placeholder="Valor" step="0.01" class="outro-valor" style="width: 100px;">
+                <button class="btn-remove" onclick="this.parentElement.remove()">X</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function gerarJSON() {
+            const obj = {
+                empresa: document.getElementById('empresa').value,
+                salario_base: parseFloat(document.getElementById('salario_base').value) || 0.0,
+                bruto: parseFloat(document.getElementById('bruto').value) || 0.0,
+                inss: parseFloat(document.getElementById('inss').value) || 0.0,
+                irrf: parseFloat(document.getElementById('irrf').value) || 0.0,
+                outros: {}
+            };
+
+            // Captura todos os campos dinâmicos criados
+            const itensOutros = document.querySelectorAll('.outro-item');
+            itensOutros.forEach(item => {
+                let nome = item.querySelector('.outro-nome').value.trim();
+                let valor = parseFloat(item.querySelector('.outro-valor').value) || 0.0;
+                
+                if (nome !== '') {
+                    // Truque de Engenharia de Dados: Substitui espaços por underline para não quebrar o SQL depois
+                    nome = nome.toLowerCase().replace(/\s+/g, '_');
+                    obj.outros[nome] = valor;
+                }
+            });
+
+            // Converte para JSON
+            const jsonString = JSON.stringify(obj, null, 4);
+            document.getElementById('resultado').textContent = jsonString;
+
+            // Copia para a área de transferência
+            navigator.clipboard.writeText(jsonString).then(() => {
+                alert("JSON copiado com sucesso! Pode colar no Cashew.");
+            });
+        }
+    </script>
+
+</body>
+</html>
