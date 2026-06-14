@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de JSON - Compras Online</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 15px; 
+            max-width: 500px; 
+            margin: auto; 
+            background-color: #f4f4f9; 
+        }
+        h2 { text-align: center; color: #333; }
+        label { font-weight: bold; margin-top: 10px; display: block; font-size: 14px; color: #444; }
+        input, select { 
+            width: 100%; 
+            padding: 10px; 
+            margin-top: 5px; 
+            box-sizing: border-box; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            font-size: 14px;
+        }
+        
+        .header-box {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #ced4da;
+        }
+
+        .carrinho-box { 
+            border: 1px dashed #aaa; 
+            padding: 15px; 
+            background: #fff; 
+            border-radius: 6px; 
+        }
+        
+        .item-compra { 
+            background: #fdfdfd; 
+            border: 1px solid #ddd; 
+            padding: 10px; 
+            margin-bottom: 10px; 
+            border-radius: 4px; 
+        }
+        
+        .item-linha { 
+            display: flex; 
+            gap: 10px; 
+            margin-top: 5px;
+            align-items: center; 
+        }
+        
+        .item-linha > div { flex: 1; }
+        
+        .btn-add { 
+            margin-top: 10px; 
+            width: 100%; 
+            padding: 10px; 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: bold;
+        }
+        .btn-add:hover { background-color: #0056b3; }
+        
+        .btn-remove { 
+            background-color: #dc3545; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .btn-gerar { 
+            margin-top: 25px; 
+            width: 100%; 
+            padding: 14px; 
+            background-color: #28a745; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn-gerar:hover { background-color: #218838; }
+        
+        pre { 
+            background: #eee; 
+            padding: 15px; 
+            border-radius: 4px; 
+            overflow-x: auto; 
+            font-size: 13px; 
+            border: 1px solid #ccc; 
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Carrinho de Compras Online - Cashew</h2>
+
+    <!-- Dados Principais da Transação -->
+    <div class="header-box">
+        <label>Título da Transação:</label>
+        <input type="text" id="transacao-titulo" placeholder="Ex: Compras Amazon">
+
+        <label>Valor Total (R$):</label>
+        <input type="number" id="transacao-total" step="0.01" placeholder="0.00">
+    </div>
+
+    <!-- Carrinho de Itens (JSON) -->
+    <div class="carrinho-box">
+        <label>Itens do Pedido (Vai para a Descrição):</label>
+        <div id="itens-container">
+            <div class="item-compra">
+                <label>Nome do Produto:</label>
+                <input type="text" class="item-nome" placeholder="Ex: Teclado Mecânico">
+                
+                <div class="item-linha">
+                    <div>
+                        <label>Preço Pago:</label>
+                        <input type="number" class="item-preco" step="0.01" placeholder="99.90">
+                    </div>
+                    <div>
+                        <label>Reembolsado?</label>
+                        <select class="item-reembolsado">
+                            <option value="0">Não (0)</option>
+                            <option value="1">Sim (1)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="btn-add" onclick="adicionarItem()">+ Adicionar Novo Item</button>
+    </div>
+
+    <button class="btn-gerar" onclick="gerarEEnviar()">Gerar e Enviar para o Cashew</button>
+
+    <pre id="resultado">JSON aparecerá aqui...</pre>
+
+    <script>
+        // Ao carregar a página, verifica se a URL tem o parâmetro ?total=
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const totalParam = urlParams.get('total');
+            
+            if (totalParam !== null) {
+                // Tenta converter para float
+                const totalValor = parseFloat(totalParam);
+                if (!isNaN(totalValor)) {
+                    document.getElementById('transacao-total').value = totalValor.toFixed(2);
+                }
+            }
+        };
+
+        function adicionarItem() {
+            const container = document.getElementById('itens-container');
+            const div = document.createElement('div');
+            div.className = 'item-compra';
+            div.innerHTML = `
+                <label>Nome do Produto:</label>
+                <input type="text" class="item-nome" placeholder="Ex: Livro de SQL">
+                
+                <div class="item-linha">
+                    <div>
+                        <label>Preço Pago:</label>
+                        <input type="number" class="item-preco" step="0.01">
+                    </div>
+                    <div>
+                        <label>Reembolsado?</label>
+                        <select class="item-reembolsado">
+                            <option value="0">Não (0)</option>
+                            <option value="1">Sim (1)</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn-remove" onclick="this.parentElement.remove()">Remover este item</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function gerarEEnviar() {
+            // 1. Capturar Título e Total
+            const titulo = document.getElementById('transacao-titulo').value.trim() || 'Compra Online';
+            const total = parseFloat(document.getElementById('transacao-total').value) || 0.0;
+
+            // 2. Construir o JSON do carrinho
+            const arrayCompras = [];
+            const itens = document.querySelectorAll('.item-compra');
+            
+            itens.forEach(item => {
+                let nome = item.querySelector('.item-nome').value.trim();
+                let preco = parseFloat(item.querySelector('.item-preco').value) || 0.0;
+                let reembolsado = parseInt(item.querySelector('.item-reembolsado').value) || 0;
+                
+                if (nome !== '') {
+                    arrayCompras.push({
+                        nome: nome,
+                        preco: preco,
+                        reembolsado: reembolsado
+                    });
+                }
+            });
+
+            if (arrayCompras.length === 0) {
+                alert("Por favor, adicione o nome de pelo menos um produto ao carrinho.");
+                return;
+            }
+
+            // Converter Array para JSON string
+            const jsonString = JSON.stringify(arrayCompras, null, 4);
+            document.getElementById('resultado').textContent = jsonString;
+
+            // 3. Montar a URL de Deep Link do Cashew
+            // O padrão do Cashew utiliza a base https://cashewapp.web.app/addTransaction
+            // Com os parâmetros: amount, title e note
+            const encodedTitle = encodeURIComponent(titulo);
+            const encodedAmount = encodeURIComponent(total.toString());
+            const encodedNote = encodeURIComponent(jsonString);
+            
+            const cashewIntentURL = `https://cashewapp.web.app/addTransaction?amount=${encodedAmount}&title=${encodedTitle}&note=${encodedNote}`;
+
+            // 4. Copia para a área de transferência como backup
+            navigator.clipboard.writeText(jsonString).then(() => {
+                // 5. Redireciona o navegador para abrir o aplicativo
+                window.location.href = cashewIntentURL;
+            }).catch(err => {
+                console.error("Falha ao copiar:", err);
+                // Mesmo se falhar a cópia, tenta abrir o app
+                window.location.href = cashewIntentURL;
+            });
+        }
+    </script>
+
+</body>
+</html>
