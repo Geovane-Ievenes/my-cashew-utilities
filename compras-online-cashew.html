@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de JSON - Compras Online</title>
+    <title>Registrar + JSON - Compras Online Cashew</title>
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -110,9 +110,8 @@
 </head>
 <body>
 
-    <h2>Carrinho de Compras Online - Cashew</h2>
+    <h2>Carrinho de Compras Online v3.0</h2>
 
-    <!-- Dados Principais da Transação -->
     <div class="header-box">
         <label>Título da Transação:</label>
         <input type="text" id="transacao-titulo" placeholder="Ex: Compras Amazon">
@@ -121,7 +120,6 @@
         <input type="number" id="transacao-total" step="0.01" placeholder="0.00">
     </div>
 
-    <!-- Carrinho de Itens (JSON) -->
     <div class="carrinho-box">
         <label>Itens do Pedido (Vai para a Descrição):</label>
         <div id="itens-container">
@@ -225,27 +223,24 @@
             const jsonString = JSON.stringify(arrayCompras, null, 4);
             document.getElementById('resultado').textContent = jsonString;
 
-            // 3. Montar a URL de Deep Link do Cashew
-            // O padrão do Cashew utiliza a base https://cashewapp.web.app/addTransaction
-            // Com os parâmetros: amount, title e note
+            // 3. Montar a URL Padrão (com a rota corrigida)
             const encodedTitle = encodeURIComponent(titulo);
             const encodedAmount = encodeURIComponent(total.toString());
             const encodedNote = encodeURIComponent(jsonString);
             
-            // NOVA ARQUITETURA (Forçando a abertura via Android Intent):
-            const fallbackUrl = encodeURIComponent(`https://cashewapp.web.app/addTransaction?amount=${encodedAmount}&title=${encodedTitle}&note=${encodedNote}`);
-            
-            const cashewIntentURL = `intent://cashewapp.web.app/addTransactionRoute?amount=${encodedAmount}&title=${encodedTitle}&note=${encodedNote}#Intent;scheme=https;package=com.budget.tracker_app;S.browser_fallback_url=${fallbackUrl};end`;
+            const urlLimpa = `https://cashewapp.web.app/addTransactionRoute?amount=${encodedAmount}&title=${encodedTitle}&note=${encodedNote}`;
 
             // 4. Copia para a área de transferência como backup
-            navigator.clipboard.writeText(jsonString).then(() => {
-                // 5. Redireciona o navegador para abrir o aplicativo
-                window.location.href = cashewIntentURL;
-            }).catch(err => {
-                console.error("Falha ao copiar:", err);
-                // Mesmo se falhar a cópia, tenta abrir o app
-                window.location.href = cashewIntentURL;
-            });
+            navigator.clipboard.writeText(jsonString).catch(err => console.error("Falha ao copiar:", err));
+
+            // 5. O Truque de Fuga do Native Alpha (Link Invisível)
+            const linkInvisivel = document.createElement('a');
+            linkInvisivel.href = urlLimpa;
+            linkInvisivel.target = "_top"; // Força o Android a assumir o controle do link
+            
+            document.body.appendChild(linkInvisivel);
+            linkInvisivel.click(); // Simula o clique do usuário
+            document.body.removeChild(linkInvisivel); // Limpa a sujeira
         }
     </script>
 
