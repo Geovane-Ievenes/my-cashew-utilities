@@ -232,7 +232,10 @@
             const encodedAmount = encodeURIComponent(total.toString());
             const encodedNote = encodeURIComponent(jsonString);
             
-            const cashewIntentURL = `https://cashewapp.web.app/addTransactionRoute?amount=${encodedAmount}&title=${encodedTitle}&note=${encodedNote}`;
+            // NOVA ARQUITETURA (Forçando a abertura via Android Intent):
+            const fallbackUrl = encodeURIComponent(`https://cashewapp.web.app/addTransaction?amount=${encodedAmount}&title=${encodedTitle}&note=${encodedNote}`);
+            
+            const cashewIntentURL = `intent://cashewapp.web.app/addTransactionRoute?amount=${encodedAmount}&title=${encodedTitle}&note=${encodedNote}#Intent;scheme=https;package=com.budget.tracker_app;S.browser_fallback_url=${fallbackUrl};end`;
 
             // 4. Copia para a área de transferência como backup
             navigator.clipboard.writeText(jsonString).then(() => {
