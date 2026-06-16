@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Compras Online para Cashew</title>
+    <title>Compras Online em Lote - Cashew</title>
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -113,7 +113,7 @@
 </head>
 <body>
 
-    <h2>Registrar Lote de Compras para Cashew</h2>
+    <h2>Registrar Lote de Compras</h2>
 
     <div class="header-box">
         <label>ID da Compra (Finalidade/Agrupamento):</label>
@@ -209,17 +209,25 @@
             itens.forEach(item => {
                 let nome = item.querySelector('.item-nome').value.trim();
                 let preco = parseFloat(item.querySelector('.item-preco').value) || 0.0;
-                let subcategoria = item.querySelector('.item-subcategoria').value;
+                let subcategoriaSelecionada = item.querySelector('.item-subcategoria').value;
                 let reembolsado = parseInt(item.querySelector('.item-reembolsado').value) || 0;
                 
                 if (nome !== '' && preco > 0) {
-                    // Monta o objeto individual para o Cashew
-                    // O amount vai negativo para refletir a saída de caixa
+                    let categoriaFinal = "Compras Online";
+                    let subcategoriaFinal = subcategoriaSelecionada;
+
+                    // Aplica a regra de negócio condicional para itens reembolsados
+                    if (reembolsado === 1) {
+                        categoriaFinal = "Correção de equilíbrio";
+                        subcategoriaFinal = "- Reembolsado";
+                    }
+
+                    // Monta o objeto individual para o lote do Cashew
                     transacoes.push({
                         title: `${nome} ${idCompra}`,
                         amount: (-Math.abs(preco)).toString(),
-                        category: "Compras Online",
-                        subCategory: subcategoria,
+                        category: categoriaFinal,
+                        subCategory: subcategoriaFinal,
                         notes: JSON.stringify({ "reembolsado": reembolsado })
                     });
                 }
@@ -230,22 +238,17 @@
                 return;
             }
 
-            // Estrutura final exigida pelo Cashew
             const payload = {
                 transactions: transacoes
             };
 
-            // Converte para JSON e codifica para URL
             const jsonString = JSON.stringify(payload);
             const encodedJson = encodeURIComponent(jsonString);
             
-            // Monta a URL com a rota de transação usando o parâmetro JSON
             const urlLimpa = `https://cashewapp.web.app/addTransactionRoute?JSON=${encodedJson}`;
 
-            // Copia o JSON para a área de transferência por segurança
             navigator.clipboard.writeText(jsonString).catch(err => console.error("Falha ao copiar:", err));
 
-            // Truque do link invisível para bypass de sandboxes/WebView
             const linkInvisivel = document.createElement('a');
             linkInvisivel.href = urlLimpa;
             linkInvisivel.target = "_top";
