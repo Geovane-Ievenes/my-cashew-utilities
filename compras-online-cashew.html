@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrar + JSON - Compras Online Cashew</title>
+    <title>Compras Online para Cashew</title>
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -30,6 +30,17 @@
             border-radius: 6px;
             margin-bottom: 20px;
             border: 1px solid #ced4da;
+            text-align: center;
+        }
+        
+        #compra-id {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            background: #e9ecef;
+            color: #0056b3;
+            border: none;
+            outline: none;
         }
 
         .carrinho-box { 
@@ -42,15 +53,16 @@
         .item-compra { 
             background: #fdfdfd; 
             border: 1px solid #ddd; 
-            padding: 10px; 
-            margin-bottom: 10px; 
-            border-radius: 4px; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+            border-radius: 6px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
         
         .item-linha { 
             display: flex; 
             gap: 10px; 
-            margin-top: 5px;
+            margin-top: 10px;
             align-items: center; 
         }
         
@@ -59,7 +71,7 @@
         .btn-add { 
             margin-top: 10px; 
             width: 100%; 
-            padding: 10px; 
+            padding: 12px; 
             background-color: #007bff; 
             color: white; 
             border: none; 
@@ -79,7 +91,7 @@
             font-size: 12px;
             font-weight: bold;
             width: 100%;
-            margin-top: 10px;
+            margin-top: 15px;
         }
         
         .btn-gerar { 
@@ -97,40 +109,38 @@
         }
         .btn-gerar:hover { background-color: #218838; }
         
-        pre { 
-            background: #eee; 
-            padding: 15px; 
-            border-radius: 4px; 
-            overflow-x: auto; 
-            font-size: 13px; 
-            border: 1px solid #ccc; 
-            margin-top: 20px;
-        }
     </style>
 </head>
 <body>
 
-    <h2>Carrinho de Compras Online para Cashew</h2>
+    <h2>Registrar Compras Online no Cashew</h2>
 
     <div class="header-box">
-        <label>Título da Transação:</label>
-        <input type="text" id="transacao-titulo" placeholder="Ex: Compras Amazon">
-
-        <label>Valor Total (R$):</label>
-        <input type="number" id="transacao-total" step="0.01" placeholder="0.00">
+        <label>ID da Compra (Finalidade/Agrupamento):</label>
+        <input type="text" id="compra-id" readonly>
     </div>
 
     <div class="carrinho-box">
-        <label>Itens do Pedido (Vai para a Descrição):</label>
+        <label>Transações Individuais:</label>
         <div id="itens-container">
             <div class="item-compra">
-                <label>Nome do Produto:</label>
-                <input type="text" class="item-nome" placeholder="Ex: Teclado Mecânico">
+                <label>Produto / Título:</label>
+                <input type="text" class="item-nome" placeholder="Ex: Capinha de Celular">
                 
+                <label>Subcategoria:</label>
+                <select class="item-subcategoria">
+                    <option value="Mercado Livre">Mercado Livre</option>
+                    <option value="Amazon">Amazon</option>
+                    <option value="Shopee">Shopee</option>
+                    <option value="Shein">Shein</option>
+                    <option value="SaaS">SaaS</option>
+                    <option value="Google Services">Google Services</option>
+                </select>
+
                 <div class="item-linha">
                     <div>
-                        <label>Preço Pago:</label>
-                        <input type="number" class="item-preco" step="0.01" placeholder="99.90">
+                        <label>Valor (R$):</label>
+                        <input type="number" class="item-preco" step="0.01" placeholder="45.90">
                     </div>
                     <div>
                         <label>Reembolsado?</label>
@@ -143,26 +153,16 @@
             </div>
         </div>
         
-        <button class="btn-add" onclick="adicionarItem()">+ Adicionar Novo Item</button>
+        <button class="btn-add" onclick="adicionarItem()">+ Adicionar Outra Transação</button>
     </div>
 
-    <button class="btn-gerar" onclick="gerarEEnviar()">Gerar e Enviar para o Cashew</button>
-
-    <pre id="resultado">JSON aparecerá aqui...</pre>
+    <button class="btn-gerar" onclick="gerarEEnviar()">Enviar Lote para o Cashew</button>
 
     <script>
-        // Ao carregar a página, verifica se a URL tem o parâmetro ?total=
+        // Gera o ID aleatório de 5 dígitos ao carregar a página
         window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const totalParam = urlParams.get('total');
-            
-            if (totalParam !== null) {
-                // Tenta converter para float
-                const totalValor = parseFloat(totalParam);
-                if (!isNaN(totalValor)) {
-                    document.getElementById('transacao-total').value = totalValor.toFixed(2);
-                }
-            }
+            const randomId = Math.floor(Math.random() * 90000) + 10000;
+            document.getElementById('compra-id').value = "#" + randomId;
         };
 
         function adicionarItem() {
@@ -170,12 +170,22 @@
             const div = document.createElement('div');
             div.className = 'item-compra';
             div.innerHTML = `
-                <label>Nome do Produto:</label>
+                <label>Produto / Título:</label>
                 <input type="text" class="item-nome" placeholder="Ex: Livro de SQL">
                 
+                <label>Subcategoria:</label>
+                <select class="item-subcategoria">
+                    <option value="Mercado Livre">Mercado Livre</option>
+                    <option value="Amazon">Amazon</option>
+                    <option value="Shopee">Shopee</option>
+                    <option value="Shein">Shein</option>
+                    <option value="SaaS">SaaS</option>
+                    <option value="Google Services">Google Services</option>
+                </select>
+
                 <div class="item-linha">
                     <div>
-                        <label>Preço Pago:</label>
+                        <label>Valor (R$):</label>
                         <input type="number" class="item-preco" step="0.01">
                     </div>
                     <div>
@@ -192,55 +202,56 @@
         }
 
         function gerarEEnviar() {
-            // 1. Capturar Título e Total
-            const titulo = document.getElementById('transacao-titulo').value.trim() || 'Compra Online';
-            const total = parseFloat(document.getElementById('transacao-total').value) || 0.0;
-
-            // 2. Construir o JSON do carrinho
-            const arrayCompras = [];
+            const idCompra = document.getElementById('compra-id').value;
             const itens = document.querySelectorAll('.item-compra');
+            const transacoes = [];
             
             itens.forEach(item => {
                 let nome = item.querySelector('.item-nome').value.trim();
                 let preco = parseFloat(item.querySelector('.item-preco').value) || 0.0;
+                let subcategoria = item.querySelector('.item-subcategoria').value;
                 let reembolsado = parseInt(item.querySelector('.item-reembolsado').value) || 0;
                 
-                if (nome !== '') {
-                    arrayCompras.push({
-                        nome: nome,
-                        preco: preco,
-                        reembolsado: reembolsado
+                if (nome !== '' && preco > 0) {
+                    // Monta o objeto individual para o Cashew
+                    transacoes.push({
+                        title: `${nome} ${idCompra}`,  // Anexa o #12345 no título
+                        amount: preco.toString(),      // Cashew geralmente aceita o amount como string no JSON param
+                        category: "Compras Online",
+                        subCategory: subcategoria,
+                        notes: JSON.stringify({ "reembolsado": reembolsado }) // Mantém o mini-JSON nas notas para o Metabase
                     });
                 }
             });
 
-            if (arrayCompras.length === 0) {
-                alert("Por favor, adicione o nome de pelo menos um produto ao carrinho.");
+            if (transacoes.length === 0) {
+                alert("Adicione pelo menos um produto com nome e valor válido.");
                 return;
             }
 
-            // Converter Array para JSON string
-            const jsonString = JSON.stringify(arrayCompras, null, 4);
-            document.getElementById('resultado').textContent = jsonString;
+            // Estrutura final exigida pelo Cashew
+            const payload = {
+                transactions: transacoes
+            };
 
-            // 3. Montar a URL Padrão (com a rota corrigida)
-            const encodedTitle = encodeURIComponent(titulo);
-            const encodedAmount = encodeURIComponent(total.toString());
-            const encodedNote = encodeURIComponent(jsonString);
+            // Converte para JSON e codifica para URL
+            const jsonString = JSON.stringify(payload);
+            const encodedJson = encodeURIComponent(jsonString);
             
-            const urlLimpa = `https://cashewapp.web.app/addTransactionRoute?amount=${encodedAmount}&title=${encodedTitle}&note=${encodedNote}`;
+            // Monta a URL com a rota de transação usando o parâmetro JSON
+            const urlLimpa = `https://cashewapp.web.app/addTransactionRoute?JSON=${encodedJson}`;
 
-            // 4. Copia para a área de transferência como backup
+            // Copia o JSON para a área de transferência por segurança
             navigator.clipboard.writeText(jsonString).catch(err => console.error("Falha ao copiar:", err));
 
-            // 5. O Truque de Fuga do Native Alpha (Link Invisível)
+            // Truque do link invisível para bypass de sandboxes/WebView
             const linkInvisivel = document.createElement('a');
             linkInvisivel.href = urlLimpa;
-            linkInvisivel.target = "_top"; // Força o Android a assumir o controle do link
+            linkInvisivel.target = "_top";
             
             document.body.appendChild(linkInvisivel);
-            linkInvisivel.click(); // Simula o clique do usuário
-            document.body.removeChild(linkInvisivel); // Limpa a sujeira
+            linkInvisivel.click();
+            document.body.removeChild(linkInvisivel);
         }
     </script>
 
