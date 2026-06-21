@@ -214,18 +214,21 @@
                 if (nome !== '' && preco > 0) {
                     let categoriaFinal = "Compras Online";
                     let subcategoriaFinal = subcategoriaSelecionada;
+                    let tituloFinal = `${nome} ${idCompra}`;
 
-                    // A Mágica do Marcador de Reembolso
+                    // A Mágica do Marcador de Reembolso injetado no Título
                     if (reembolsado === 1) {
                         categoriaFinal = "Correção de equilíbrio";
-                        subcategoriaFinal = "$" + subcategoriaSelecionada; // Ex: $Amazon
+                        subcategoriaFinal = "- Reembolsado"; // Retorna a subcategoria ao padrão do aplicativo
+                        tituloFinal = `$${subcategoriaSelecionada} ${nome} ${idCompra}`; // Injeta o $Loja no título
                     }
 
                     transacoes.push({
-                        title: `${nome} ${idCompra}`,
+                        title: tituloFinal,
                         amount: (-Math.abs(preco)).toString(),
                         category: categoriaFinal,
-                        subCategory: subcategoriaFinal
+                        subCategory: subcategoriaFinal,
+                        notes: JSON.stringify({ "reembolsado": reembolsado })
                     });
                 }
             });
