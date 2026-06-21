@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compras de Negócios em Lote - Cashew</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 15px; 
+            max-width: 500px; 
+            margin: auto; 
+            background-color: #f4f4f9; 
+        }
+        h2 { text-align: center; color: #333; }
+        label { font-weight: bold; margin-top: 10px; display: block; font-size: 14px; color: #444; }
+        input, select { 
+            width: 100%; 
+            padding: 10px; 
+            margin-top: 5px; 
+            box-sizing: border-box; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            font-size: 14px;
+        }
+        
+        .header-box {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #ced4da;
+        }
+        
+        .tipo-switch {
+            margin-bottom: 15px;
+        }
+        
+        #compra-id {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            background: #e9ecef;
+            color: #198754;
+            border: none;
+            outline: none;
+        }
+
+        .carrinho-box { 
+            border: 1px dashed #aaa; 
+            padding: 15px; 
+            background: #fff; 
+            border-radius: 6px; 
+        }
+        
+        .item-compra { 
+            background: #fdfdfd; 
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+            border-radius: 6px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .item-linha { 
+            display: flex; 
+            gap: 10px; 
+            margin-top: 10px;
+            align-items: center; 
+        }
+        
+        .item-linha > div { flex: 1; }
+        
+        .btn-add { 
+            margin-top: 10px; 
+            width: 100%; 
+            padding: 12px; 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: bold;
+        }
+        .btn-add:hover { background-color: #0056b3; }
+        
+        .btn-remove { 
+            background-color: #dc3545; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 15px;
+        }
+        
+        .btn-gerar { 
+            margin-top: 25px; 
+            width: 100%; 
+            padding: 14px; 
+            background-color: #198754; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn-gerar:hover { background-color: #157347; }
+        
+    </style>
+</head>
+<body>
+
+    <h2>Registrar Compras de Negócios</h2>
+
+    <div class="header-box">
+        <div class="tipo-switch">
+            <label>Tipo de Compra de Negócio:</label>
+            <select id="tipo-compra" onchange="alternarTipoCompra()">
+                <option value="ONLINE">Online (Ambiente Digital)</option>
+                <option value="FISICA">Loja Física (Estabelecimento)</option>
+            </select>
+        </div>
+
+        <label>ID da Compra (Finalidade/Agrupamento):</label>
+        <input type="text" id="compra-id" readonly>
+    </div>
+
+    <div class="carrinho-box">
+        <label>Transações do Lote:</label>
+        <div id="itens-container"></div>
+        
+        <button class="btn-add" onclick="adicionarItem()">+ Adicionar Outra Transação</button>
+    </div>
+
+    <button class="btn-gerar" onclick="gerarEEnviar()">Enviar Lote de Negócios para o Cashew</button>
+
+    <script>
+        const lojasOnline = ["Mercado Livre", "Amazon", "Shopee", "Shein", "SaaS", "Google Services"];
+        const lojasFisicas = ["Casas Bahia", "Magazine Luiza"];
+
+        window.onload = function() {
+            alternarTipoCompra();
+        };
+
+        function alternarTipoCompra() {
+            const tipo = document.getElementById('tipo-compra').value;
+            const randomId = Math.floor(Math.random() * 90000) + 10000;
+            
+            if (tipo === "ONLINE") {
+                document.getElementById('compra-id').value = "#NO" + randomId;
+            } else {
+                document.getElementById('compra-id').value = "#NL" + randomId;
+            }
+
+            const container = document.getElementById('itens-container');
+            const itensExistentes = container.querySelectorAll('.item-compra');
+
+            if (itensExistentes.length === 0) {
+                adicionarItem();
+            } else {
+                itensExistentes.forEach(item => {
+                    const select = item.querySelector('.item-subcategoria');
+                    repopularSelectLoja(select);
+                });
+            }
+        }
+
+        function repopularSelectLoja(selectElement) {
+            const tipo = document.getElementById('tipo-compra').value;
+            const listaLojas = (tipo === "ONLINE") ? lojasOnline : lojasFisicas;
+            
+            selectElement.innerHTML = '';
+            listaLojas.forEach(loja => {
+                const opt = document.createElement('option');
+                opt.value = loja;
+                opt.textContent = loja;
+                selectElement.appendChild(opt);
+            });
+        }
+
+        function adicionarItem() {
+            const container = document.getElementById('itens-container');
+            const div = document.createElement('div');
+            div.className = 'item-compra';
+            
+            div.innerHTML = `
+                <label>Produto / Título:</label>
+                <input type="text" class="item-nome" placeholder="Ex: Equipamento ou Insumo">
+                
+                <label>Subcategoria (Loja):</label>
+                <select class="item-subcategoria"></select>
+
+                <div class="item-linha">
+                    <div>
+                        <label>Valor (R$):</label>
+                        <input type="number" class="item-preco" step="0.01" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label>Reembolsado?</label>
+                        <select class="item-reembolsado">
+                            <option value="0">Não (0)</option>
+                            <option value="1">Sim (1)</option>
+                        </select>
+                    </div>
+                </div>
+                ${container.children.length > 0 ? '<button class="btn-remove" onclick="this.parentElement.remove()">Remover este item</button>' : ''}
+            `;
+            
+            container.appendChild(div);
+            
+            const novoSelect = div.querySelector('.item-subcategoria');
+            repopularSelectLoja(novoSelect);
+        }
+
+        function gerarEEnviar() {
+            const tipoCompra = document.getElementById('tipo-compra').value;
+            const idCompra = document.getElementById('compra-id').value;
+            const itens = document.querySelectorAll('.item-compra');
+            const transacoes = [];
+            
+            itens.forEach(item => {
+                let nome = item.querySelector('.item-nome').value.trim();
+                let preco = parseFloat(item.querySelector('.item-preco').value) || 0.0;
+                let subcategoriaSelecionada = item.querySelector('.item-subcategoria').value;
+                let reembolsado = parseInt(item.querySelector('.item-reembolsado').value) || 0;
+                
+                if (nome !== '' && preco > 0) {
+                    let categoriaFinal = "";
+                    let subcategoriaFinal = "";
+                    let tituloFinal = "";
+
+                    if (reembolsado === 1) {
+                        categoriaFinal = "Correção de equilíbrio";
+                        subcategoriaFinal = "- Reembolsado";
+                        tituloFinal = `${nome} ${idCompra} $${subcategoriaSelecionada}`;
+                    } else {
+                        // Verificação condicional do escopo do tipo de loja
+                        if (tipoCompra === "ONLINE") {
+                            categoriaFinal = "Negócios: Insumos Online";
+                        } else {
+                            categoriaFinal = "Negócios: Insumos Loja Física";
+                        }
+                        subcategoriaFinal = subcategoriaSelecionada;
+                        tituloFinal = `${nome} ${idCompra}`;
+                    }
+
+                    transacoes.push({
+                        title: tituloFinal,
+                        amount: (-Math.abs(preco)).toString(),
+                        category: categoriaFinal,
+                        subCategory: subcategoriaFinal
+                    });
+                }
+            });
+
+            if (transacoes.length === 0) {
+                alert("Adicione pelo menos um produto com nome e valor válido.");
+                return;
+            }
+
+            const payload = {
+                transactions: transacoes
+            };
+
+            const jsonString = JSON.stringify(payload);
+            const encodedJson = encodeURIComponent(jsonString);
+            
+            const urlLimpa = `https://cashewapp.web.app/addTransactionRoute?JSON=${encodedJson}`;
+
+            navigator.clipboard.writeText(jsonString).catch(err => console.error("Falha ao copiar:", err));
+
+            const linkInvisivel = document.createElement('a');
+            linkInvisivel.href = urlLimpa;
+            linkInvisivel.target = "_top";
+            
+            document.body.appendChild(linkInvisivel);
+            linkInvisivel.click();
+            document.body.removeChild(linkInvisivel);
+        }
+    </script>
+
+</body>
+</html>
