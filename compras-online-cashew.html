@@ -218,9 +218,10 @@
 
                     // A Mágica do Marcador de Reembolso injetado no Título
                     if (reembolsado === 1) {
+                        let subcategoriaReal = `$${subcategoriaSelecionada}`;
                         categoriaFinal = "Correção de equilíbrio";
                         subcategoriaFinal = "- Reembolsado"; // Retorna a subcategoria ao padrão do aplicativo
-                        tituloFinal = `$${subcategoriaSelecionada} ${nome} ${idCompra}`; // Injeta o $Loja no título
+                        tituloFinal = `${nome} ${idCompra} ${subcategoriaReal}`; // Injeta o $Loja no título
                     }
 
                     transacoes.push({
