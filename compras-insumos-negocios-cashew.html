@@ -138,7 +138,7 @@
         let lojasOnline = [];
         const lojasFisicas = ["Físico"];
 
-        // Carrega o JSON de lojas externas ao abrir a página
+        // Carrega o arquivo JSON externo de lojas ao iniciar
         window.onload = async function() {
             try {
                 const response = await fetch('lojas_online.json');
@@ -214,7 +214,7 @@
                 </div>
 
                 <label>Finalidade / Rastreio (Opcional):</label>
-                <input type="text" class="item-finalidade" placeholder="Ex: ProjetoX, Infra, Copa">
+                <input type="text" class="item-finalidade" placeholder="Ex: Servidor Interno, Escritorio Sp">
                 
                 ${container.children.length > 0 ? '<button class="btn-remove" onclick="this.parentElement.remove()">Remover este item</button>' : ''}
             `;
@@ -243,14 +243,16 @@
                     let tituloFinal = "";
                     let notasFinal = "";
 
-                    // Lógica para preenchimento condicional das notas
+                    // Lógica corrigida para formatação da finalidade (substituindo espaços por _)
                     if (finalidadeTexto !== "") {
-                        // Se o usuário digitou algo, remove uma possível # duplicada e adiciona o prefixo oficial
-                        const textoLimpo = finalidadeTexto.replace(/^#/, '');
+                        // 1. Remove uma hashtag acidental digitada no início
+                        let textoLimpo = finalidadeTexto.replace(/^#/, '');
+                        // 2. Transforma todos os espaços em branco (simples ou múltiplos) em sublinhados (_)
+                        textoLimpo = textoLimpo.replace(/\s+/g, '_');
+                        // 3. Define a nota final com o prefixo oficial
                         notasFinal = "#" + textoLimpo;
                     }
 
-                    // Regras de negócio anteriores mantidas intactas
                     if (reembolsado === 1) {
                         categoriaFinal = "Correção de equilíbrio";
                         subcategoriaFinal = "- Reembolsado";
@@ -266,7 +268,7 @@
                         amount: (-Math.abs(preco)).toString(),
                         category: categoriaFinal,
                         subCategory: subcategoriaFinal,
-                        notes: notasFinal // Injeta a string "#TEXTO" ou "" nas notas
+                        notes: notasFinal
                     });
                 }
             });
