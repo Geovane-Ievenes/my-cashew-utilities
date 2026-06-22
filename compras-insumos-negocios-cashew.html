@@ -141,10 +141,23 @@
     <button class="btn-gerar" onclick="gerarEEnviar()">Enviar Lote de Negócios para o Cashew</button>
 
     <script>
-        const lojasOnline = ["Mercado Livre", "Amazon", "Shopee", "Shein", "SaaS", "Google Services"];
-        const lojasFisicas = ["Casas Bahia", "Magazine Luiza"];
+        // Variáveis globais para armazenar os bancos de dados de lojas
+        let lojasOnline = [];
+        const lojasFisicas = ["Físico"];
 
-        window.onload = function() {
+        // Carrega o JSON de forma assíncrona quando a página abre
+        window.onload = async function() {
+            try {
+                const response = await fetch('lojas_online.json');
+                if (!response.ok) throw new Error("Erro na rede ao buscar o arquivo.");
+                lojasOnline = await response.json();
+            } catch (error) {
+                console.error("Não foi possível carregar o lojas_online.json. Usando fallback.", error);
+                // Fallback de segurança para a página não quebrar caso o arquivo ainda não tenha subido no GitHub
+                lojasOnline = ["Erro de Conexão - Edite o JSON"];
+            }
+            
+            // Depois de carregar o JSON, inicializa a interface
             alternarTipoCompra();
         };
 
@@ -152,6 +165,7 @@
             const tipo = document.getElementById('tipo-compra').value;
             const randomId = Math.floor(Math.random() * 90000) + 10000;
             
+            // Alterna o prefixo do ID conforme o escopo
             if (tipo === "ONLINE") {
                 document.getElementById('compra-id').value = "#NO" + randomId;
             } else {
@@ -173,6 +187,7 @@
 
         function repopularSelectLoja(selectElement) {
             const tipo = document.getElementById('tipo-compra').value;
+            // Se for online puxa o array populado pelo JSON, se for física puxa o array fixo ["Físico"]
             const listaLojas = (tipo === "ONLINE") ? lojasOnline : lojasFisicas;
             
             selectElement.innerHTML = '';
@@ -219,7 +234,6 @@
         }
 
         function gerarEEnviar() {
-            const tipoCompra = document.getElementById('tipo-compra').value;
             const idCompra = document.getElementById('compra-id').value;
             const itens = document.querySelectorAll('.item-compra');
             const transacoes = [];
@@ -240,12 +254,9 @@
                         subcategoriaFinal = "- Reembolsado";
                         tituloFinal = `${nome} ${idCompra} $${subcategoriaSelecionada}`;
                     } else {
-                        // Verificação condicional do escopo do tipo de loja
-                        if (tipoCompra === "ONLINE") {
-                            categoriaFinal = "Negócios: Insumos Online";
-                        } else {
-                            categoriaFinal = "Negócios: Insumos Loja Física";
-                        }
+                        // Unificação: Categoria é sempre "Negócios: Insumos" se não for reembolso
+                        categoriaFinal = "Negócios: Insumos";
+                        // A subcategoria será o que estiver no select ("Físico" ou "Amazon" etc)
                         subcategoriaFinal = subcategoriaSelecionada;
                         tituloFinal = `${nome} ${idCompra}`;
                     }
@@ -254,7 +265,8 @@
                         title: tituloFinal,
                         amount: (-Math.abs(preco)).toString(),
                         category: categoriaFinal,
-                        subCategory: subcategoriaFinal
+                        subCategory: subcategoriaFinal,
+                        notes: "" 
                     });
                 }
             });
