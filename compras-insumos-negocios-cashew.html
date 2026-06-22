@@ -32,10 +32,6 @@
             border: 1px solid #ced4da;
         }
         
-        .tipo-switch {
-            margin-bottom: 15px;
-        }
-        
         #compra-id {
             text-align: center;
             font-size: 18px;
@@ -119,15 +115,13 @@
     <h2>Registrar Compras de Negócios</h2>
 
     <div class="header-box">
-        <div class="tipo-switch">
-            <label>Tipo de Compra de Negócio:</label>
-            <select id="tipo-compra" onchange="alternarTipoCompra()">
-                <option value="ONLINE">Online (Ambiente Digital)</option>
-                <option value="FISICA">Loja Física (Estabelecimento)</option>
-            </select>
-        </div>
+        <label>Tipo de Compra de Negócio:</label>
+        <select id="tipo-compra" onchange="alternarTipoCompra()">
+            <option value="ONLINE">Online (Ambiente Digital)</option>
+            <option value="FISICA">Loja Física (Estabelecimento)</option>
+        </select>
 
-        <label>ID da Compra (Finalidade/Agrupamento):</label>
+        <label style="margin-top: 15px;">ID da Compra (Finalidade/Agrupamento):</label>
         <input type="text" id="compra-id" readonly>
     </div>
 
@@ -141,23 +135,19 @@
     <button class="btn-gerar" onclick="gerarEEnviar()">Enviar Lote de Negócios para o Cashew</button>
 
     <script>
-        // Variáveis globais para armazenar os bancos de dados de lojas
         let lojasOnline = [];
-        const lojasFisicas = ["Loja Física"];
+        const lojasFisicas = ["Físico"];
 
-        // Carrega o JSON de forma assíncrona quando a página abre
+        // Carrega o JSON de lojas externas ao abrir a página
         window.onload = async function() {
             try {
                 const response = await fetch('lojas_online.json');
-                if (!response.ok) throw new Error("Erro na rede ao buscar o arquivo.");
+                if (!response.ok) throw new Error();
                 lojasOnline = await response.json();
             } catch (error) {
-                console.error("Não foi possível carregar o lojas_online.json. Usando fallback.", error);
-                // Fallback de segurança para a página não quebrar caso o arquivo ainda não tenha subido no GitHub
-                lojasOnline = ["Erro de Conexão - Edite o JSON"];
+                console.error("Não foi possível carregar lojas_online.json. Usando fallback.");
+                lojasOnline = ["Mercado Livre", "Amazon", "Shopee", "Shein", "SaaS", "Google Services"];
             }
-            
-            // Depois de carregar o JSON, inicializa a interface
             alternarTipoCompra();
         };
 
@@ -165,7 +155,6 @@
             const tipo = document.getElementById('tipo-compra').value;
             const randomId = Math.floor(Math.random() * 90000) + 10000;
             
-            // Alterna o prefixo do ID conforme o escopo
             if (tipo === "ONLINE") {
                 document.getElementById('compra-id').value = "#NO" + randomId;
             } else {
@@ -187,7 +176,6 @@
 
         function repopularSelectLoja(selectElement) {
             const tipo = document.getElementById('tipo-compra').value;
-            // Se for online puxa o array populado pelo JSON, se for física puxa o array fixo ["Loja Física"]
             const listaLojas = (tipo === "ONLINE") ? lojasOnline : lojasFisicas;
             
             selectElement.innerHTML = '';
@@ -206,7 +194,7 @@
             
             div.innerHTML = `
                 <label>Produto / Título:</label>
-                <input type="text" class="item-nome" placeholder="Ex: Equipamento ou Insumo">
+                <input type="text" class="item-nome" placeholder="Ex: Monitor, Cadeira">
                 
                 <label>Subcategoria (Loja):</label>
                 <select class="item-subcategoria"></select>
@@ -224,6 +212,10 @@
                         </select>
                     </div>
                 </div>
+
+                <label>Finalidade / Rastreio (Opcional):</label>
+                <input type="text" class="item-finalidade" placeholder="Ex: ProjetoX, Infra, Copa">
+                
                 ${container.children.length > 0 ? '<button class="btn-remove" onclick="this.parentElement.remove()">Remover este item</button>' : ''}
             `;
             
@@ -243,20 +235,28 @@
                 let preco = parseFloat(item.querySelector('.item-preco').value) || 0.0;
                 let subcategoriaSelecionada = item.querySelector('.item-subcategoria').value;
                 let reembolsado = parseInt(item.querySelector('.item-reembolsado').value) || 0;
+                let finalidadeTexto = item.querySelector('.item-finalidade').value.trim();
                 
                 if (nome !== '' && preco > 0) {
                     let categoriaFinal = "";
                     let subcategoriaFinal = "";
                     let tituloFinal = "";
+                    let notasFinal = "";
 
+                    // Lógica para preenchimento condicional das notas
+                    if (finalidadeTexto !== "") {
+                        // Se o usuário digitou algo, remove uma possível # duplicada e adiciona o prefixo oficial
+                        const textoLimpo = finalidadeTexto.replace(/^#/, '');
+                        notasFinal = "#" + textoLimpo;
+                    }
+
+                    // Regras de negócio anteriores mantidas intactas
                     if (reembolsado === 1) {
                         categoriaFinal = "Correção de equilíbrio";
                         subcategoriaFinal = "- Reembolsado";
                         tituloFinal = `${nome} ${idCompra} $${subcategoriaSelecionada}`;
                     } else {
-                        // Unificação: Categoria é sempre "Negócios: Insumos" se não for reembolso
                         categoriaFinal = "Negócios: Insumos";
-                        // A subcategoria será o que estiver no select ("Loja Física" ou "Amazon" etc)
                         subcategoriaFinal = subcategoriaSelecionada;
                         tituloFinal = `${nome} ${idCompra}`;
                     }
@@ -266,7 +266,7 @@
                         amount: (-Math.abs(preco)).toString(),
                         category: categoriaFinal,
                         subCategory: subcategoriaFinal,
-                        notes: "" 
+                        notes: notasFinal // Injeta a string "#TEXTO" ou "" nas notas
                     });
                 }
             });
@@ -276,10 +276,7 @@
                 return;
             }
 
-            const payload = {
-                transactions: transacoes
-            };
-
+            const payload = { transactions: transacoes };
             const jsonString = JSON.stringify(payload);
             const encodedJson = encodeURIComponent(jsonString);
             
