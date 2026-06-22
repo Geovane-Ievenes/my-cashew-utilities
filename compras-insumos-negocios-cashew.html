@@ -187,7 +187,7 @@
 
         function repopularSelectLoja(selectElement) {
             const tipo = document.getElementById('tipo-compra').value;
-            // Se for online puxa o array populado pelo JSON, se for física puxa o array fixo ["Físico"]
+            // Se for online puxa o array populado pelo JSON, se for física puxa o array fixo ["Loja Física"]
             const listaLojas = (tipo === "ONLINE") ? lojasOnline : lojasFisicas;
             
             selectElement.innerHTML = '';
@@ -256,7 +256,7 @@
                     } else {
                         // Unificação: Categoria é sempre "Negócios: Insumos" se não for reembolso
                         categoriaFinal = "Negócios: Insumos";
-                        // A subcategoria será o que estiver no select ("Físico" ou "Amazon" etc)
+                        // A subcategoria será o que estiver no select ("Loja Física" ou "Amazon" etc)
                         subcategoriaFinal = subcategoriaSelecionada;
                         tituloFinal = `${nome} ${idCompra}`;
                     }
