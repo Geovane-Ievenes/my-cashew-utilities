@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Lojas Online</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 15px; 
+            max-width: 500px; 
+            margin: auto; 
+            background-color: #f4f4f9; 
+        }
+        h2 { text-align: center; color: #333; }
+        p.descricao { text-align: center; font-size: 13px; color: #666; margin-bottom: 20px; }
+        
+        .header-box {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #ced4da;
+            text-align: center;
+        }
+
+        .lista-box { 
+            border: 1px dashed #aaa; 
+            padding: 15px; 
+            background: #fff; 
+            border-radius: 6px; 
+        }
+        
+        .loja-linha { 
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 10px;
+            align-items: center; 
+        }
+        
+        .loja-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .btn-remove {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 10px 15px;
+            font-weight: bold;
+        }
+        .btn-remove:hover { background-color: #c82333; }
+        
+        .btn-add { 
+            margin-top: 10px; 
+            width: 100%; 
+            padding: 12px; 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: bold;
+        }
+        .btn-add:hover { background-color: #0056b3; }
+        
+        .btn-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .btn-acao { 
+            flex: 1;
+            padding: 14px; 
+            color: white; 
+            border: none; 
+            border-radius: 4px; 
+            font-size: 14px; 
+            cursor: pointer; 
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn-baixar { background-color: #198754; }
+        .btn-baixar:hover { background-color: #157347; }
+        
+        .btn-copiar { background-color: #6c757d; }
+        .btn-copiar:hover { background-color: #5a6268; }
+        
+    </style>
+</head>
+<body>
+
+    <h2>Gerenciador de Lojas</h2>
+    <p class="descricao">Edite a lista e baixe o novo arquivo para substituir o <b>lojas_online.json</b> no seu repositório.</p>
+
+    <div class="lista-box">
+        <div id="lista-lojas">
+            </div>
+        
+        <button class="btn-add" onclick="adicionarLinhaEmBranco()">+ Adicionar Nova Loja</button>
+    </div>
+
+    <div class="btn-container">
+        <button class="btn-acao btn-copiar" onclick="copiarJSON()">📋 Copiar JSON</button>
+        <button class="btn-acao btn-baixar" onclick="baixarJSON()">💾 Baixar .json</button>
+    </div>
+
+    <script>
+        // Ao carregar a página, tenta buscar o arquivo existente
+        window.onload = async function() {
+            try {
+                const response = await fetch('lojas_online.json');
+                if (!response.ok) throw new Error("Arquivo não encontrado.");
+                const lojas = await response.json();
+                
+                // Se o arquivo existir, renderiza uma caixa para cada loja
+                lojas.forEach(loja => adicionarLinha(loja));
+                
+            } catch (error) {
+                console.warn("JSON não encontrado. Iniciando lista vazia.");
+                adicionarLinhaEmBranco();
+            }
+        };
+
+        // Adiciona uma caixa de texto preenchida
+        function adicionarLinha(valor) {
+            const container = document.getElementById('lista-lojas');
+            const div = document.createElement('div');
+            div.className = 'loja-linha';
+            
+            div.innerHTML = `
+                <input type="text" class="loja-input" value="${valor}" placeholder="Nome da Loja (Ex: Kabum)">
+                <button class="btn-remove" onclick="this.parentElement.remove()" title="Remover">X</button>
+            `;
+            
+            container.appendChild(div);
+        }
+
+        // Adiciona uma caixa de texto vazia
+        function adicionarLinhaEmBranco() {
+            adicionarLinha('');
+        }
+
+        // Função principal que varre as caixas e gera o Array final
+        function construirArrayDeLojas() {
+            const inputs = document.querySelectorAll('.loja-input');
+            const listaAtualizada = [];
+            
+            inputs.forEach(input => {
+                const valor = input.value.trim();
+                // Ignora campos deixados em branco
+                if (valor !== '') {
+                    listaAtualizada.push(valor);
+                }
+            });
+            
+            return listaAtualizada;
+        }
+
+        // Gera o arquivo e força o download
+        function baixarJSON() {
+            const lista = construirArrayDeLojas();
+            if (lista.length === 0) {
+                alert("A lista não pode estar completamente vazia.");
+                return;
+            }
+
+            const jsonString = JSON.stringify(lista, null, 4);
+            const blob = new Blob([jsonString], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            
+            const linkDownload = document.createElement('a');
+            linkDownload.href = url;
+            linkDownload.download = "lojas_online.json"; // Nome exato do arquivo
+            
+            document.body.appendChild(linkDownload);
+            linkDownload.click();
+            document.body.removeChild(linkDownload);
+            URL.revokeObjectURL(url);
+        }
+
+        // Copia direto para a área de transferência (útil para quem edita pelo celular/Termux)
+        function copiarJSON() {
+            const lista = construirArrayDeLojas();
+            const jsonString = JSON.stringify(lista, null, 4);
+            
+            navigator.clipboard.writeText(jsonString).then(() => {
+                alert("JSON copiado para a área de transferência!");
+            }).catch(err => {
+                console.error("Erro ao copiar:", err);
+                alert("Falha ao copiar o JSON.");
+            });
+        }
+    </script>
+
+</body>
+</html>
