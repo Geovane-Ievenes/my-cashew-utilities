@@ -31,6 +31,14 @@
             margin-bottom: 20px;
             border: 1px solid #ced4da;
         }
+
+        /* Container para alinhar o Input e o Botão de Info lado a lado */
+        .id-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 5px;
+        }
         
         #compra-id {
             text-align: center;
@@ -41,11 +49,34 @@
             border: 2px solid #ccc;
             outline: none;
             transition: border-color 0.3s;
+            margin-top: 0; /* Reset para alinhar no flex */
+            flex: 1;
         }
         
         #compra-id:not([readonly]) {
             border-color: #dc3545;
             background: #fff8f8;
+        }
+
+        /* Estilo do botão de Info */
+        .btn-info {
+            background-color: #0dcaf0;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            font-size: 16px;
+            cursor: pointer;
+            display: none; /* Inicia escondido */
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+            transition: background-color 0.2s;
+        }
+        .btn-info:hover {
+            background-color: #0baccc;
         }
 
         .carrinho-box { 
@@ -129,7 +160,10 @@
         </select>
 
         <label style="margin-top: 15px;">ID da Compra (Finalidade/Agrupamento):</label>
-        <input type="text" id="compra-id" readonly placeholder="Carregando...">
+        <div class="id-wrapper">
+            <input type="text" id="compra-id" readonly placeholder="Carregando...">
+            <button type="button" id="btn-info" class="btn-info" onclick="mostrarDetalhesDoErro()" title="Ver detalhes do erro">ℹ️</button>
+        </div>
     </div>
 
     <div class="carrinho-box">
@@ -144,8 +178,9 @@
     <script>
         let lojasOnline = [];
         const lojasFisicas = ["Loja Física"];
+        let ultimoNumeroIdGlobal = null;
+        let mensagemErroAtual = ""; // Guarda o texto do erro técnico interno
 
-        // Carrega as lojas e inicia a primeira busca de ID
         window.onload = async function() {
             try {
                 const response = await fetch('lojas_online.json');
@@ -156,32 +191,32 @@
                 lojasOnline = ["Mercado Livre", "Amazon", "Shopee", "Shein", "SaaS", "Google Services"];
             }
 
-            // O container sempre deve ter um item ao iniciar
             const container = document.getElementById('itens-container');
             if (container.children.length === 0) adicionarItem();
 
-            // Busca a ID ao entrar na página
             alternarTipoCompra();
         };
 
-        // Função que é ativada sempre que o Select muda (Online/Física)
         async function alternarTipoCompra() {
             const tipo = document.getElementById('tipo-compra').value;
             const prefixo = (tipo === "ONLINE") ? "#NO" : "#NL";
             
             const inputId = document.getElementById('compra-id');
             const btnEnviar = document.getElementById('btn-enviar');
+            const btnInfo = document.getElementById('btn-info');
 
-            // 1. Bloqueia a interface e avisa que está carregando
+            // Limpa estados de erro anteriores ao reiniciar a busca
             inputId.value = "";
             inputId.readOnly = true;
             inputId.placeholder = "Buscando ID no Metabase...";
+            
+            btnInfo.style.display = "none";
+            mensagemErroAtual = "";
             
             btnEnviar.disabled = true;
             btnEnviar.textContent = "Aguardando ID...";
             btnEnviar.style.backgroundColor = "#6c757d";
 
-            // Atualiza as opções do select de lojas dos itens já existentes
             const container = document.getElementById('itens-container');
             const itensExistentes = container.querySelectorAll('.item-compra');
             itensExistentes.forEach(item => {
@@ -190,47 +225,65 @@
             });
 
             try {
-                // 2. Faz o POST enviando o prefixo específico
                 const response = await fetch('/obter-id', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ "database": 1, "prefixo": prefixo })
                 });
 
-                if (!response.ok) throw new Error();
+                if (!response.ok) {
+                    throw new Error(`O servidor Cloudflare/Metabase retornou um status HTTP ${response.status}.`);
+                }
 
                 const dadosQuery = await response.json();
                 
-                // Trata falhas na formatação de retorno da API de forma segura
+                if (dadosQuery.error) {
+                    throw new Error(`Erro retornado pela Function: ${dadosQuery.error}`);
+                }
+
                 const ultimoId = dadosQuery?.data?.rows?.[0]?.[0];
-                
-                // Incrementa ou define o valor base
                 const proximoNumero = ultimoId ? parseInt(ultimoId) + 1 : 10000;
                 inputId.value = prefixo + proximoNumero;
 
-                // 3. Sucesso: Libera o botão
                 btnEnviar.disabled = false;
                 btnEnviar.textContent = "Enviar Lote de Negócios para o Cashew";
                 btnEnviar.style.backgroundColor = "#198754";
 
             } catch (erro) {
-                console.error("Falha na comunicação com Metabase/Cloudflare:", erro);
+                console.error("Falha na sincronização:", erro);
                 
-                // 4. Falha: Destrava o campo para o usuário digitar na mão
+                // Armazena a mensagem de erro para o botão de info usar
+                mensagemErroAtual = erro.message || "Erro de rede ou timeout ao tentar alcançar a Cloudflare Pages Function.";
+                
+                // Ativa a interface de inserção manual
                 inputId.readOnly = false;
                 inputId.placeholder = `Erro. Digite manualmente (Ex: ${prefixo}10050)`;
                 
+                // Torna o botão de informação visível
+                btnInfo.style.display = "flex";
+                
                 btnEnviar.disabled = false;
                 btnEnviar.textContent = "Enviar Lote (ID Manual)";
-                btnEnviar.style.backgroundColor = "#dc3545"; // Fica vermelho para chamar atenção
+                btnEnviar.style.backgroundColor = "#dc3545";
             }
+        }
+
+        // Função disparada ao clicar no botão 'info'
+        function mostrarDetalhesDoErro() {
+            alert(
+                `⚠️ FALHA NA CONSULTA DO ID AUTOMÁTICO\n\n` +
+                `Detalhes Técnicos:\n"${mensagemErroAtual}"\n\n` +
+                `O que verificar:\n` +
+                `1. O seu container local do Metabase está ligado?\n` +
+                `2. O seu túnel HTTP (Cloudflare Tunnel/Ngrok) está ativo?\n` +
+                `3. A URL configurada em 'functions/obter-id.js' corresponde ao endereço atual do seu túnel?\n\n` +
+                `O campo de ID foi liberado para você continuar seus lançamentos manualmente.`
+            );
         }
 
         function repopularSelectLoja(selectElement) {
             const tipo = document.getElementById('tipo-compra').value;
             const listaLojas = (tipo === "ONLINE") ? lojasOnline : lojasFisicas;
-            
-            // Salva o valor antigo para tentar mantê-lo após atualizar a lista
             const valorAntigo = selectElement.value;
             
             selectElement.innerHTML = '';
@@ -241,7 +294,6 @@
                 selectElement.appendChild(opt);
             });
 
-            // Tenta restaurar a seleção se ela ainda existir na nova lista
             if (listaLojas.includes(valorAntigo)) {
                 selectElement.value = valorAntigo;
             }
@@ -280,7 +332,6 @@
             `;
             
             container.appendChild(div);
-            
             const novoSelect = div.querySelector('.item-subcategoria');
             repopularSelectLoja(novoSelect);
         }
@@ -291,7 +342,7 @@
             const transacoes = [];
             
             if (idCompra === "") {
-                alert("O ID da compra não pode estar vazio. Aguarde o carregamento ou digite um manualmente.");
+                alert("O ID da compra não pode estar vazio. Aguarde o carregamento ou insira um valor válido.");
                 return;
             }
 
