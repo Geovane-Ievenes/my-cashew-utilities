@@ -16,7 +16,7 @@ export async function onRequestPost(context) {
         // Segurança: Garante que o banco só receba os prefixos oficiais, evitando SQL Injection
         const prefixo = corpoRequisicao.prefixo === '#NL' ? '#NL' : '#NO';
 
-        const response = await fetch('http://seu-servidor-metabase:3000/api/dataset', {
+        const response = await fetch('http://192.168.0.105:3000/api/dataset', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
