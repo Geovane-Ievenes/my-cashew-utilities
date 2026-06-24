@@ -20,7 +20,7 @@ export async function onRequestPost(context) {
             return new Response(JSON.stringify({ error: "A variável 'METABASE_PORT' não está configurada no Cloudflare." }), { status: 500, headers });
         }
         if (!METABASE_DB_ID) {
-            return new Response(JSON.stringify({ error: "A variável 'METABASE_DB_ID' não está configurada no Cloudflare." }), { status: 500, headers });
+            return new Response(JSON.stringify({ error: "A variável 'METABASE_DB_ID' não está configurada no Cloudflare. O ID aparece em 'http://SER-SERVIDOR-METABASE:PORTA/admin/databases/>3<'" }), { status: 500, headers });
         }
 
         const corpoRequisicao = await context.request.json().catch(() => ({}));
