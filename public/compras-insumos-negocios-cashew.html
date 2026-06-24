@@ -36,10 +36,16 @@
             text-align: center;
             font-size: 18px;
             font-weight: bold;
-            background: #e9ecef;
+            background: #fff;
             color: #198754;
-            border: none;
+            border: 2px solid #ccc;
             outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        #compra-id:not([readonly]) {
+            border-color: #dc3545;
+            background: #fff8f8;
         }
 
         .carrinho-box { 
@@ -107,6 +113,7 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         .btn-gerar:hover { background-color: #157347; }
+        .btn-gerar:disabled { background-color: #6c757d; cursor: not-allowed; box-shadow: none; }
         
     </style>
 </head>
@@ -122,7 +129,7 @@
         </select>
 
         <label style="margin-top: 15px;">ID da Compra (Finalidade/Agrupamento):</label>
-        <input type="text" id="compra-id" readonly placeholder="Buscando ID no Metabase...">
+        <input type="text" id="compra-id" readonly placeholder="Carregando...">
     </div>
 
     <div class="carrinho-box">
@@ -132,83 +139,99 @@
         <button class="btn-add" onclick="adicionarItem()">+ Adicionar Outra Transação</button>
     </div>
 
-    <button class="btn-gerar" onclick="gerarEEnviar()">Enviar Lote de Negócios para o Cashew</button>
+    <button id="btn-enviar" class="btn-gerar" onclick="gerarEEnviar()" disabled>Aguardando ID...</button>
 
     <script>
         let lojasOnline = [];
         const lojasFisicas = ["Loja Física"];
-        let ultimoNumeroIdGlobal = null; // Armazena o número bruto vindo do banco
 
-        // Carrega o arquivo JSON externo de lojas e sincroniza com o Metabase
+        // Carrega as lojas e inicia a primeira busca de ID
         window.onload = async function() {
             try {
                 const response = await fetch('lojas_online.json');
                 if (!response.ok) throw new Error();
                 lojasOnline = await response.json();
             } catch (error) {
-                console.error("Não foi possível carregar lojas_online.json. Usando fallback.");
+                console.error("Usando fallback de lojas.");
                 lojasOnline = ["Mercado Livre", "Amazon", "Shopee", "Shein", "SaaS", "Google Services"];
             }
 
-            // Consulta o servidor backend escondido do Cloudflare para obter o último ID real
-            await buscarUltimoIdDoMetabase();
-            
-            // Renderiza a interface inicial
+            // O container sempre deve ter um item ao iniciar
+            const container = document.getElementById('itens-container');
+            if (container.children.length === 0) adicionarItem();
+
+            // Busca a ID ao entrar na página
             alternarTipoCompra();
         };
 
-        async function buscarUltimoIdDoMetabase() {
+        // Função que é ativada sempre que o Select muda (Online/Física)
+        async function alternarTipoCompra() {
+            const tipo = document.getElementById('tipo-compra').value;
+            const prefixo = (tipo === "ONLINE") ? "#NO" : "#NL";
+            
+            const inputId = document.getElementById('compra-id');
+            const btnEnviar = document.getElementById('btn-enviar');
+
+            // 1. Bloqueia a interface e avisa que está carregando
+            inputId.value = "";
+            inputId.readOnly = true;
+            inputId.placeholder = "Buscando ID no Metabase...";
+            
+            btnEnviar.disabled = true;
+            btnEnviar.textContent = "Aguardando ID...";
+            btnEnviar.style.backgroundColor = "#6c757d";
+
+            // Atualiza as opções do select de lojas dos itens já existentes
+            const container = document.getElementById('itens-container');
+            const itensExistentes = container.querySelectorAll('.item-compra');
+            itensExistentes.forEach(item => {
+                const select = item.querySelector('.item-subcategoria');
+                repopularSelectLoja(select);
+            });
+
             try {
-                // Rota relativa apontando para o seu functions/obter-id.js
+                // 2. Faz o POST enviando o prefixo específico
                 const response = await fetch('/obter-id', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ "database": 1 })
+                    body: JSON.stringify({ "database": 1, "prefixo": prefixo })
                 });
 
                 if (!response.ok) throw new Error();
 
                 const dadosQuery = await response.json();
-                const ultimoIdMapeado = dadosQuery.data.rows[0][0];
+                
+                // Trata falhas na formatação de retorno da API de forma segura
+                const ultimoId = dadosQuery?.data?.rows?.[0]?.[0];
+                
+                // Incrementa ou define o valor base
+                const proximoNumero = ultimoId ? parseInt(ultimoId) + 1 : 10000;
+                inputId.value = prefixo + proximoNumero;
 
-                // Se houver registro, guarda o número inteiro, se não, define a base em 10000
-                ultimoNumeroIdGlobal = ultimoIdMapeado ? parseInt(ultimoIdMapeado) : 10000;
+                // 3. Sucesso: Libera o botão
+                btnEnviar.disabled = false;
+                btnEnviar.textContent = "Enviar Lote de Negócios para o Cashew";
+                btnEnviar.style.backgroundColor = "#198754";
+
             } catch (erro) {
-                console.error("Erro ao falar com o Metabase. Usando modo de segurança aleatório.", erro);
-                ultimoNumeroIdGlobal = null; // Força o fallback randômico
-            }
-        }
-
-        function alternarTipoCompra() {
-            const tipo = document.getElementById('tipo-compra').value;
-            const prefixo = (tipo === "ONLINE") ? "#NO" : "#NL";
-            
-            if (ultimoNumeroIdGlobal !== null) {
-                // Sequencial Perfeito incremental (+1) obtido do banco
-                const proximoId = ultimoNumeroIdGlobal + 1;
-                document.getElementById('compra-id').value = prefixo + proximoId;
-            } else {
-                // Fallback robusto caso seu Metabase local esteja desligado
-                const randomId = Math.floor(Math.random() * 90000) + 10000;
-                document.getElementById('compra-id').value = prefixo + randomId;
-            }
-
-            const container = document.getElementById('itens-container');
-            const itensExistentes = container.querySelectorAll('.item-compra');
-
-            if (itensExistentes.length === 0) {
-                adicionarItem();
-            } else {
-                itensExistentes.forEach(item => {
-                    const select = item.querySelector('.item-subcategoria');
-                    repopularSelectLoja(select);
-                });
+                console.error("Falha na comunicação com Metabase/Cloudflare:", erro);
+                
+                // 4. Falha: Destrava o campo para o usuário digitar na mão
+                inputId.readOnly = false;
+                inputId.placeholder = `Erro. Digite manualmente (Ex: ${prefixo}10050)`;
+                
+                btnEnviar.disabled = false;
+                btnEnviar.textContent = "Enviar Lote (ID Manual)";
+                btnEnviar.style.backgroundColor = "#dc3545"; // Fica vermelho para chamar atenção
             }
         }
 
         function repopularSelectLoja(selectElement) {
             const tipo = document.getElementById('tipo-compra').value;
             const listaLojas = (tipo === "ONLINE") ? lojasOnline : lojasFisicas;
+            
+            // Salva o valor antigo para tentar mantê-lo após atualizar a lista
+            const valorAntigo = selectElement.value;
             
             selectElement.innerHTML = '';
             listaLojas.forEach(loja => {
@@ -217,6 +240,11 @@
                 opt.textContent = loja;
                 selectElement.appendChild(opt);
             });
+
+            // Tenta restaurar a seleção se ela ainda existir na nova lista
+            if (listaLojas.includes(valorAntigo)) {
+                selectElement.value = valorAntigo;
+            }
         }
 
         function adicionarItem() {
@@ -258,10 +286,15 @@
         }
 
         function gerarEEnviar() {
-            const idCompra = document.getElementById('compra-id').value;
+            const idCompra = document.getElementById('compra-id').value.trim();
             const itens = document.querySelectorAll('.item-compra');
             const transacoes = [];
             
+            if (idCompra === "") {
+                alert("O ID da compra não pode estar vazio. Aguarde o carregamento ou digite um manualmente.");
+                return;
+            }
+
             itens.forEach(item => {
                 let nome = item.querySelector('.item-nome').value.trim();
                 let preco = parseFloat(item.querySelector('.item-preco').value) || 0.0;
