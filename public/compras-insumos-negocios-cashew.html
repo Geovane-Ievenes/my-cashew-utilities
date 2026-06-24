@@ -195,7 +195,7 @@
             alternarTipoCompra();
         };
 
-        async function alternarTipoCompra() {
+		async function alternarTipoCompra() {
             const tipo = document.getElementById('tipo-compra').value;
             const prefixo = (tipo === "ONLINE") ? "#NO" : "#NL";
             
@@ -225,23 +225,21 @@
                 const response = await fetch('/obter-id', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ "database": 1, "prefixo": prefixo })
+                    // Removido o envio do "database". Agora enviamos apenas o prefixo.
+                    body: JSON.stringify({ "prefixo": prefixo }) 
                 });
 
                 let dadosQuery;
                 try {
-                    // Tenta ler o corpo da resposta primeiro, mesmo que seja um erro 500
                     dadosQuery = await response.json();
                 } catch (e) {
                     throw new Error(`Erro Crítico HTTP ${response.status}: O servidor não retornou um JSON válido. É possível que o Cloudflare Pages esteja fora do ar ou o arquivo de função não foi encontrado.`);
                 }
 
-                // Se o backend do Cloudflare enviou especificamente a chave "error"
                 if (dadosQuery.error) {
                     throw new Error(dadosQuery.error);
                 }
 
-                // Fallback para caso o Cloudflare responda com erro nativo dele sem o corpo customizado
                 if (!response.ok) {
                     throw new Error(`Erro desconhecido do servidor (Status ${response.status}).`);
                 }
@@ -256,8 +254,6 @@
 
             } catch (erro) {
                 console.error("Falha na sincronização:", erro);
-                
-                // Agora salva o erro exato que veio do throw acima
                 mensagemErroAtual = erro.message;
                 
                 inputId.readOnly = false;
