@@ -153,7 +153,7 @@
         <label style="margin-top: 15px;">ID da Compra (Finalidade/Agrupamento):</label>
         <div class="id-wrapper">
             <input type="text" id="compra-id" readonly placeholder="Carregando...">
-            <button type="button" id="btn-info" class="btn-info" onclick="mostrarDetalhesDoErro()">ℹ️</button>
+            <button type="button" id="btn-info" class="btn-info" onclick="mostrarDetalhesDoErro()" title="Ver detalhes">ℹ️</button>
         </div>
     </div>
 
@@ -263,7 +263,13 @@
 
                 // Extrai o valor retornado na célula de dados (campo "ultimo_id")
                 const ultimoIdMapeado = dadosQuery?.data?.rows?.[0]?.[0];
-                const proximoNumero = ultimoIdMapeado ? parseInt(ultimoIdMapeado) + 1 : 10000;
+                
+                // LÓGICA DE CONTROLE: Se o retorno for null/vazio, joga direto para o modo manual
+                if (!ultimoIdMapeado) {
+                    throw new Error(`O banco de dados não encontrou nenhum registro anterior com o prefixo ${prefixo}. Por favor, insira o ID inicial manualmente.`);
+                }
+
+                const proximoNumero = parseInt(ultimoIdMapeado) + 1;
                 inputId.value = prefixo + proximoNumero;
 
                 btnEnviar.disabled = false;
@@ -271,19 +277,22 @@
                 btnEnviar.style.backgroundColor = "#198754";
 
             } catch (erro) {
+                // Cai aqui se der erro de rede, erro do Metabase ou se retornar null (lançado acima)
                 mensagemErroAtual = erro.message;
+                
                 inputId.readOnly = false;
-                inputId.placeholder = `Erro. Digite manualmente (Ex: ${prefixo}10050)`;
-                btnInfo.style.display = "flex";
+                inputId.value = ""; // Limpa a caixa de texto
+                inputId.placeholder = `ID Manual (Ex: ${prefixo}10050)`;
+                btnInfo.style.display = "flex"; // Mostra o botão de info com o motivo
                 
                 btnEnviar.disabled = false;
                 btnEnviar.textContent = "Enviar Lote (ID Manual)";
-                btnEnviar.style.backgroundColor = "#dc3545";
+                btnEnviar.style.backgroundColor = "#dc3545"; // Fica vermelho
             }
         }
 
         function mostrarDetalhesDoErro() {
-            alert(`⚠️ FALHA AO CONECTAR COM PERGUNTAS DO METABASE\n\nMotivo:\n${mensagemErroAtual}`);
+            alert(`⚠️ INFORMAÇÃO DO SISTEMA\n\nMotivo:\n${mensagemErroAtual}\n\nO campo foi destravado para inserção manual.`);
         }
 
         function repopularSelectLoja(selectElement) {
