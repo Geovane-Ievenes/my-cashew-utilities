@@ -1,0 +1,25 @@
+{
+  "name": "my-cashew-utilities",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Geovane-Ievenes/my-cashew-utilities.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Geovane-Ievenes/my-cashew-utilities/issues"
+  },
+  "homepage": "https://github.com/Geovane-Ievenes/my-cashew-utilities#readme",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}
