@@ -71,10 +71,6 @@
             justify-content: center;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             flex-shrink: 0;
-            transition: background-color 0.2s;
-        }
-        .btn-info:hover {
-            background-color: #0baccc;
         }
 
         .carrinho-box { 
@@ -113,7 +109,6 @@
             cursor: pointer; 
             font-weight: bold;
         }
-        .btn-add:hover { background-color: #0056b3; }
         
         .btn-remove { 
             background-color: #dc3545; 
@@ -139,10 +134,8 @@
             font-size: 16px; 
             cursor: pointer; 
             font-weight: bold;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        .btn-gerar:hover { background-color: #157347; }
-        .btn-gerar:disabled { background-color: #6c757d; cursor: not-allowed; box-shadow: none; }
+        .btn-gerar:disabled { background-color: #6c757d; cursor: not-allowed; }
         
     </style>
 </head>
@@ -160,7 +153,7 @@
         <label style="margin-top: 15px;">ID da Compra (Finalidade/Agrupamento):</label>
         <div class="id-wrapper">
             <input type="text" id="compra-id" readonly placeholder="Carregando...">
-            <button type="button" id="btn-info" class="btn-info" onclick="mostrarDetalhesDoErro()" title="Ver detalhes do erro">ℹ️</button>
+            <button type="button" id="btn-info" class="btn-info" onclick="mostrarDetalhesDoErro()">ℹ️</button>
         </div>
     </div>
 
@@ -174,28 +167,60 @@
     <button id="btn-enviar" class="btn-gerar" onclick="gerarEEnviar()" disabled>Aguardando ID...</button>
 
     <script>
-        let lojasOnline = [];
-        const lojasFisicas = ["Loja Física"];
-        let ultimoNumeroIdGlobal = null;
+        let categoriasCarregadas = [];
+        let usandoFallbackLocal = false;
         let mensagemErroAtual = "";
 
         window.onload = async function() {
+            // Inicializa buscando as categorias dinâmicas do Metabase e monta a primeira linha
+            await carregarCategoriasDoSistema();
+            alternarTipoCompra();
+        };
+
+        async function carregarCategoriasDoSistema() {
+            const tipo = document.getElementById('tipo-compra').value;
+            const prefixo = (tipo === "ONLINE") ? "#NO" : "#NL";
+
             try {
-                const response = await fetch('lojas_online.json');
+                const response = await fetch('/obter-id', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tipoRequisicao: 'buscar_categorias', prefixo: prefixo })
+                });
+
                 if (!response.ok) throw new Error();
-                lojasOnline = await response.json();
+                const resJson = await response.json();
+                
+                // Mapeia as linhas retornadas pela pergunta do Metabase buscando as colunas de dados
+                const linhas = resJson?.data?.rows || [];
+                
+                // Transforma a estrutura do Metabase em objetos legíveis
+                categoriasCarregadas = linhas.map(lin => ({
+                    id: lin[0],  // category_pk
+                    name: lin[1] // name
+                }));
+                usandoFallbackLocal = false;
+
             } catch (error) {
-                console.error("Usando fallback de lojas.");
-                lojasOnline = ["Mercado Livre", "Amazon", "Shopee", "Shein", "SaaS", "Google Services"];
+                console.warn("Falha ao obter categorias do Metabase. Carregando lojas_online.json local.");
+                usandoFallbackLocal = true;
+                try {
+                    const response = await fetch('lojas_online.json');
+                    const lojasJson = await response.json();
+                    categoriasCarregadas = lojasJson.map((loja, idx) => ({ id: idx, name: loja }));
+                } catch (e) {
+                    categoriasCarregadas = [
+                        { id: 1, name: "Mercado Livre" }, { id: 2, name: "Amazon" }, 
+                        { id: 3, name: "Shopee" }, { id: 4, name: "SaaS" }
+                    ];
+                }
             }
 
             const container = document.getElementById('itens-container');
             if (container.children.length === 0) adicionarItem();
+        }
 
-            alternarTipoCompra();
-        };
-
-		async function alternarTipoCompra() {
+        async function alternarTipoCompra() {
             const tipo = document.getElementById('tipo-compra').value;
             const prefixo = (tipo === "ONLINE") ? "#NO" : "#NL";
             
@@ -206,14 +231,14 @@
             inputId.value = "";
             inputId.readOnly = true;
             inputId.placeholder = "Buscando ID no Metabase...";
-            
             btnInfo.style.display = "none";
             mensagemErroAtual = "";
-            
             btnEnviar.disabled = true;
-            btnEnviar.textContent = "Aguardando ID...";
-            btnEnviar.style.backgroundColor = "#6c757d";
 
+            // Recarrega a árvore de categorias dinamicamente dependendo do escopo selecionado
+            await carregarCategoriasDoSistema();
+
+            // Atualiza os seletores visuais dos produtos existentes na tela
             const container = document.getElementById('itens-container');
             const itensExistentes = container.querySelectorAll('.item-compra');
             itensExistentes.forEach(item => {
@@ -225,27 +250,20 @@
                 const response = await fetch('/obter-id', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    // Removido o envio do "database". Agora enviamos apenas o prefixo.
-                    body: JSON.stringify({ "prefixo": prefixo }) 
+                    body: JSON.stringify({ tipoRequisicao: 'buscar_id', prefixo: prefixo })
                 });
 
                 let dadosQuery;
-                try {
-                    dadosQuery = await response.json();
-                } catch (e) {
-                    throw new Error(`Erro Crítico HTTP ${response.status}: O servidor não retornou um JSON válido. É possível que o Cloudflare Pages esteja fora do ar ou o arquivo de função não foi encontrado.`);
+                try { dadosQuery = await response.json(); } catch (e) {
+                    throw new Error("O servidor não respondeu com um formato JSON válido.");
                 }
 
-                if (dadosQuery.error) {
-                    throw new Error(dadosQuery.error);
-                }
+                if (dadosQuery.error) throw new Error(dadosQuery.error);
+                if (!response.ok) throw new Error(`Status de erro HTTP ${response.status}`);
 
-                if (!response.ok) {
-                    throw new Error(`Erro desconhecido do servidor (Status ${response.status}).`);
-                }
-
-                const ultimoId = dadosQuery?.data?.rows?.[0]?.[0];
-                const proximoNumero = ultimoId ? parseInt(ultimoId) + 1 : 10000;
+                // Extrai o valor retornado na célula de dados (campo "ultimo_id")
+                const ultimoIdMapeado = dadosQuery?.data?.rows?.[0]?.[0];
+                const proximoNumero = ultimoIdMapeado ? parseInt(ultimoIdMapeado) + 1 : 10000;
                 inputId.value = prefixo + proximoNumero;
 
                 btnEnviar.disabled = false;
@@ -253,12 +271,9 @@
                 btnEnviar.style.backgroundColor = "#198754";
 
             } catch (erro) {
-                console.error("Falha na sincronização:", erro);
                 mensagemErroAtual = erro.message;
-                
                 inputId.readOnly = false;
                 inputId.placeholder = `Erro. Digite manualmente (Ex: ${prefixo}10050)`;
-                
                 btnInfo.style.display = "flex";
                 
                 btnEnviar.disabled = false;
@@ -268,28 +283,32 @@
         }
 
         function mostrarDetalhesDoErro() {
-            // Removemos os palpites genéricos e mostramos apenas o erro real
-            alert(
-                `⚠️ FALHA NA CONSULTA DO ID AUTOMÁTICO\n\n` +
-                `Motivo do Erro:\n\n${mensagemErroAtual}\n\n` +
-                `O campo de ID foi liberado para você continuar seus lançamentos manualmente.`
-            );
+            alert(`⚠️ FALHA AO CONECTAR COM PERGUNTAS DO METABASE\n\nMotivo:\n${mensagemErroAtual}`);
         }
 
         function repopularSelectLoja(selectElement) {
             const tipo = document.getElementById('tipo-compra').value;
-            const listaLojas = (tipo === "ONLINE") ? lojasOnline : lojasFisicas;
             const valorAntigo = selectElement.value;
             
             selectElement.innerHTML = '';
-            listaLojas.forEach(loja => {
+            
+            // Se for compra física e não estiver em modo de fallback local, injeta valor padrão estático
+            if (tipo === "FISICA" && !usandoFallbackLocal) {
                 const opt = document.createElement('option');
-                opt.value = loja;
-                opt.textContent = loja;
+                opt.value = "Loja Física";
+                opt.textContent = "Loja Física";
+                selectElement.appendChild(opt);
+                return;
+            }
+
+            categoriasCarregadas.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.name;
+                opt.textContent = cat.name;
                 selectElement.appendChild(opt);
             });
 
-            if (listaLojas.includes(valorAntigo)) {
+            if (selectElement.querySelector(`option[value="${valorAntigo}"]`)) {
                 selectElement.value = valorAntigo;
             }
         }
@@ -327,8 +346,7 @@
             `;
             
             container.appendChild(div);
-            const novoSelect = div.querySelector('.item-subcategoria');
-            repopularSelectLoja(novoSelect);
+            repopularSelectLoja(div.querySelector('.item-subcategoria'));
         }
 
         function gerarEEnviar() {
@@ -336,8 +354,8 @@
             const itens = document.querySelectorAll('.item-compra');
             const transacoes = [];
             
-            if (idCompra === "") {
-                alert("O ID da compra não pode estar vazio. Aguarde o carregamento ou insira um valor válido.");
+            if (!idCompra) {
+                alert("O ID do agrupamento não pode estar vazio.");
                 return;
             }
 
@@ -355,8 +373,7 @@
                     let notasFinal = "";
 
                     if (finalidadeTexto !== "") {
-                        let textoLimpo = finalidadeTexto.replace(/^#/, '');
-                        textoLimpo = textoLimpo.replace(/\s+/g, '_');
+                        let textoLimpo = finalidadeTexto.replace(/^#/, '').replace(/\s+/g, '_');
                         notasFinal = "#" + textoLimpo;
                     }
 
@@ -387,14 +404,11 @@
 
             const payload = { transactions: transacoes };
             const jsonString = JSON.stringify(payload);
-            const encodedJson = encodeURIComponent(jsonString);
             
-            const urlLimpa = `https://cashewapp.web.app/addTransactionRoute?JSON=${encodedJson}`;
-
             navigator.clipboard.writeText(jsonString).catch(err => console.error("Falha ao copiar:", err));
 
             const linkInvisivel = document.createElement('a');
-            linkInvisivel.href = urlLimpa;
+            linkInvisivel.href = `https://cashewapp.web.app/addTransactionRoute?JSON=${encodeURIComponent(jsonString)}`;
             linkInvisivel.target = "_top";
             
             document.body.appendChild(linkInvisivel);
@@ -402,6 +416,5 @@
             document.body.removeChild(linkInvisivel);
         }
     </script>
-
 </body>
 </html>
