@@ -55,6 +55,7 @@
         #compra-id:not([readonly]) {
             border-color: #dc3545;
             background: #fff8f8;
+            color: #dc3545;
         }
 
         .btn-info {
@@ -150,7 +151,7 @@
             <option value="FISICA">Loja Física (Estabelecimento)</option>
         </select>
 
-        <label style="margin-top: 15px;">ID da Compra (Finalidade/Agrupamento):</label>
+        <label style="margin-top: 15px;">ID da Compra (Apenas os números):</label>
         <div class="id-wrapper">
             <input type="text" id="compra-id" readonly placeholder="Carregando...">
             <button type="button" id="btn-info" class="btn-info" onclick="mostrarDetalhesDoErro()" title="Ver detalhes">ℹ️</button>
@@ -227,7 +228,7 @@
 
             inputId.value = "";
             inputId.readOnly = true;
-            inputId.removeAttribute('maxlength'); // Reseta a limitação enquanto carrega
+            inputId.removeAttribute('maxlength'); 
             inputId.placeholder = "Buscando ID no Metabase...";
             btnInfo.style.display = "none";
             mensagemErroAtual = "";
@@ -264,6 +265,7 @@
                 }
 
                 const proximoNumero = parseInt(ultimoIdMapeado) + 1;
+                // Exibe o ID completo quando puxado automaticamente do banco
                 inputId.value = prefixo + proximoNumero;
 
                 btnEnviar.disabled = false;
@@ -274,9 +276,9 @@
                 mensagemErroAtual = erro.message;
                 
                 inputId.readOnly = false;
-                inputId.setAttribute('maxlength', '5'); // Restringe para apenas 5 caracteres no modo manual
+                inputId.setAttribute('maxlength', '5'); // Limita a caixa para apenas 5 dígitos numéricos
                 inputId.value = ""; 
-                inputId.placeholder = `Ex: ${prefixo.replace('#', '')}1005`;
+                inputId.placeholder = "Ex: 10025"; // Placeholder limpo só com os números
                 btnInfo.style.display = "flex"; 
                 
                 btnEnviar.disabled = false;
@@ -286,7 +288,7 @@
         }
 
         function mostrarDetalhesDoErro() {
-            alert(`⚠️ INFORMAÇÃO DO SISTEMA\n\nMotivo:\n${mensagemErroAtual}\n\nO campo foi destravado e limitado a 5 caracteres para inserção manual.`);
+            alert(`⚠️ INFORMAÇÃO DO SISTEMA\n\nMotivo:\n${mensagemErroAtual}\n\nO campo aceita apenas os dígitos numéricos (máx. 5). O prefixo correspondente será adicionado automaticamente.`);
         }
 
         function repopularSelectLoja(selectElement) {
@@ -352,19 +354,26 @@
         }
 
         function gerarEEnviar() {
-            let idCompra = document.getElementById('compra-id').value.trim();
-            const itens = document.querySelectorAll('.item-compra');
-            const transacoes = [];
+            const tipo = document.getElementById('tipo-compra').value;
+            const prefixo = (tipo === "ONLINE") ? "#NO" : "#NL";
+            let idDigitado = document.getElementById('compra-id').value.trim();
             
-            if (!idCompra) {
-                alert("O ID do agrupamento não pode estar vazio.");
+            if (!idDigitado) {
+                alert("O número do ID não pode estar vazio.");
                 return;
             }
 
-            // Garante que se o usuário digitou sem o '#', a hashtag seja incluída no payload
-            if (!idCompra.startsWith('#')) {
-                idCompra = '#' + idCompra;
+            let idCompraFinal = "";
+            // Se o campo for editável (manual), nós limpamos qualquer tentativa de prefixo e concatenamos o correto automaticamente
+            if (!document.getElementById('compra-id').readOnly) {
+                let apenasNumeros = idDigitado.replace(/[^0-1234567890]/g, '');
+                idCompraFinal = prefixo + apenasNumeros;
+            } else {
+                idCompraFinal = idDigitado;
             }
+
+            const itens = document.querySelectorAll('.item-compra');
+            const transacoes = [];
 
             itens.forEach(item => {
                 let nome = item.querySelector('.item-nome').value.trim();
@@ -381,17 +390,17 @@
 
                     if (finalidadeTexto !== "") {
                         let textoLimpo = finalidadeTexto.replace(/^#/, '').replace(/\s+/g, '_');
-                        notasFinal = "#" + textoLimpo;
+                        notesFinal = "#" + textoLimpo;
                     }
 
                     if (reembolsado === 1) {
                         categoriaFinal = "Correção de equilíbrio";
                         subcategoriaFinal = "- Reembolsado";
-                        tituloFinal = `${nome} ${idCompra} $${subcategoriaSelecionada}`;
+                        tituloFinal = `${nome} ${idCompraFinal} $${subcategoriaSelecionada}`;
                     } else {
                         categoriaFinal = "Negócios: Insumos";
                         subcategoriaFinal = subcategoriaSelecionada;
-                        tituloFinal = `${nome} ${idCompra}`;
+                        tituloFinal = `${nome} ${idCompraFinal}`;
                     }
 
                     transacoes.push({
@@ -399,7 +408,7 @@
                         amount: (-Math.abs(preco)).toString(),
                         category: categoriaFinal,
                         subCategory: subcategoriaFinal,
-                        notes: notasFinal
+                        notes: notesFinal
                     });
                 }
             });
