@@ -182,6 +182,7 @@
             const prefixo = (tipo === "ONLINE") ? "#NO" : "#NL";
 
             try {
+                // Tenta puxar dinamicamente do Metabase
                 const response = await fetch('/obter-id', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -200,6 +201,7 @@
                 usandoFallbackLocal = false;
 
             } catch (error) {
+                // FALLBACK: Só roda se o Metabase estiver inacessível
                 console.warn("Falha ao obter categorias do Metabase. Carregando lojas_online.json local.");
                 usandoFallbackLocal = true;
                 try {
@@ -265,7 +267,6 @@
                 }
 
                 const proximoNumero = parseInt(ultimoIdMapeado) + 1;
-                // Exibe o ID completo quando puxado automaticamente do banco
                 inputId.value = prefixo + proximoNumero;
 
                 btnEnviar.disabled = false;
@@ -276,9 +277,9 @@
                 mensagemErroAtual = erro.message;
                 
                 inputId.readOnly = false;
-                inputId.setAttribute('maxlength', '5'); // Limita a caixa para apenas 5 dígitos numéricos
+                inputId.setAttribute('maxlength', '5'); 
                 inputId.value = ""; 
-                inputId.placeholder = "Ex: 10025"; // Placeholder limpo só com os números
+                inputId.placeholder = "Ex: 10025"; 
                 btnInfo.style.display = "flex"; 
                 
                 btnEnviar.disabled = false;
@@ -297,7 +298,8 @@
             
             selectElement.innerHTML = '';
             
-            if (tipo === "FISICA" && !usandoFallbackLocal) {
+            // CORREÇÃO: Força sempre "Loja Física" e ignora Metabase/JSON se for compra física
+            if (tipo === "FISICA") {
                 const opt = document.createElement('option');
                 opt.value = "Loja Física";
                 opt.textContent = "Loja Física";
@@ -305,6 +307,7 @@
                 return;
             }
 
+            // Se for ONLINE, popula com as categorias puxadas (Metabase ou JSON)
             categoriasCarregadas.forEach(cat => {
                 const opt = document.createElement('option');
                 opt.value = cat.name;
@@ -364,7 +367,6 @@
             }
 
             let idCompraFinal = "";
-            // Se o campo for editável (manual), nós limpamos qualquer tentativa de prefixo e concatenamos o correto automaticamente
             if (!document.getElementById('compra-id').readOnly) {
                 let apenasNumeros = idDigitado.replace(/[^0-1234567890]/g, '');
                 idCompraFinal = prefixo + apenasNumeros;
@@ -386,11 +388,11 @@
                     let categoriaFinal = "";
                     let subcategoriaFinal = "";
                     let tituloFinal = "";
-                    let notasFinal = "";
+                    let notasFinal = ""; // CORREÇÃO: Variável padronizada para notasFinal
 
                     if (finalidadeTexto !== "") {
                         let textoLimpo = finalidadeTexto.replace(/^#/, '').replace(/\s+/g, '_');
-                        notesFinal = "#" + textoLimpo;
+                        notasFinal = "#" + textoLimpo; 
                     }
 
                     if (reembolsado === 1) {
@@ -408,7 +410,7 @@
                         amount: (-Math.abs(preco)).toString(),
                         category: categoriaFinal,
                         subCategory: subcategoriaFinal,
-                        notes: notesFinal
+                        notes: notasFinal
                     });
                 }
             });
